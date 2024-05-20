@@ -11,8 +11,12 @@
             "id": "8faead2b55aeaacb",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {}
+              "type": "markdown",
+              "state": {
+                "file": "FPP Details.md",
+                "mode": "source",
+                "source": false
+              }
             }
           }
         ]
@@ -81,6 +85,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "FPP Details.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -97,6 +102,7 @@
             "state": {
               "type": "outgoing-link",
               "state": {
+                "file": "FPP Details.md",
                 "linksCollapsed": false,
                 "unlinkedCollapsed": true
               }
@@ -119,7 +125,7 @@
             "state": {
               "type": "outline",
               "state": {
-                "file": "Welcome.md"
+                "file": "FPP Details.md"
               }
             }
           }
@@ -140,8 +146,9 @@
       "command-palette:Open command palette": false
     }
   },
-  "active": "f80c0a11bc3670d8",
+  "active": "8faead2b55aeaacb",
   "lastOpenFiles": [
+    "Welcome.md",
     "Types, GDS, and F' XML Specifications.md",
     "Ports, Components, and topology.md",
     "FPP Details.md",
@@ -159,7 +166,6 @@
     "FPRime/FPP Details.md",
     "FPRime/Documentation errors.md",
     "FPRime/Commands, Events, Channels, and Parameters.md",
-    "FPRime",
-    "Welcome.md"
+    "FPRime"
   ]
 }

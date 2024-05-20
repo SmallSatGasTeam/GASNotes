@@ -55,4 +55,110 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			 - string arrays need to know the maximum size of a string, uses a default maximum size if not specified 
 				 - ex. `array A = [3] string size 40` - the maximum amount of characters a string can have is 40
 			 - array definitions can have another array definition as its element type, but an array cannot use itself as its type
-		 - 
+			 - can assign default values to arrays using the keyword `default` followed by an array - the size of the default array MUST be the same as the size of the array being declared
+				 - the array just has to be the correct type; for example if you were to use a default array with booleans for a U8 array declaration that wouldn't work, you can use previously declared arrays as the default 
+				 - if no default is specified, then automatic defaults are assigned 
+					 - numeric values default to 0, booleans default to 'false', and strings default to `""` 
+			 - array's can be supplied with both a default value and a format string
+				 - the default value just has to written before the format string
+			 - to make an array of arrays, you just make a given array's type='another array'
+				 - ex: `array A = [3] U32; array B = [3] A` 
+					 - this makes array B an array of 3 A's, which are each an array
+			 - to set default values for arrays of arrays
+				 - you can set all values to the same thing by making the default one thing, since default values carry over if you use a previously declared array that has a specified default value
+					 - ex.  `array A = [2] U32 default 10 # default value is [ 10, 10 ]; array B1 = [2] A # default value is [[10,10], [10,10]]`
+					 - since array A has a default value of 10, and array B1 is of type A, the default value for B1 is to make each value 10 also
+					 - you can override any inherited defaults by just declaring a new `default` for a given array
+				 - you can also just declare the default value of the array of array's if you just re-write the entire structure manually 
+					 - ex. `array B4 = [2] A default [[1,2], [3,4]]`
+		 - format - use the keyword `format` followed by the character sequence `{}` to represent where values will be 
+			 - `{c}` - character value 
+			 - `{d}` - decimal value
+			 - `{x}` - hexadecimal value
+			 - `{o}` - octal value
+			 - `{e}` - rational value in exponent notation - ex. `1.234e2`
+			 - `{f}` - rational value in fixed-point notation - `123.4`
+			 - `{g}` - rational value in general format (fixed-point up until larger sizes, at which point it'll start using exponent notation)
+			 - `c, d, x, and o` - require integer type
+			 - `e, f, g` - require floating-point type
+				 - can also specify precision - ex. `{.3f}`; fixed-point notation with a precision of 3
+			 - to use the curly bracket in the output, do `{{` or `}}`
+			 - no format specified will just output the element in its default format; equivalent to a format sequence of just `{}`
+		 - Struct type - yet another name for the same structure that's called a Dictionary in python and a Hash Table in java. It's not the EXACT same structure as a Dictionary or a Hash Table, but it can be thought of as the same thing. 
+			 - it's purpose is to specify serialization for the struct
+			 - can add pre and post annotations to a struct and any of the elements declared within it
+			 - example declaration of a struct: `struct S {x: U32, y: string} default {x = 1, y = "abc"}`
+			 - can also specify default values, if none is specified then the automatic default value for each type is used
+				 - ex. `constant s = { x = 1, y = "abc"}; struct S1 {x: U8, y: string} default s`
+			 - Member Arrays are used instead of Named Arrays for Structs - member arrays are usually used more often than Named Arrays. THE GDS DOESN'T PROPERLY HANDLE MEMBER ARRAYS, SO AVOID USING THEM FOR THE GDS
+				 - members arrays generate less code than types, since Member arrays generate a C++ array, whereas a named array generates a C++ class
+				 - size of a member array isn't limited to 256 elements
+				 - the size of default values doesn't matter, so the following code is accepted:
+					 - `struct S { x: [3] U32 } default { x = 10 }`
+						 - the member array `x` will be given 3 copies of the default value 10, whereas a name array would have to be given the default value `[10, 10, 10]` to achieve the same thing
+			 - When to use Named arrays:
+				 - for a small reusable array
+				 - want to use the array outside of a structure
+				 - for convenience of a generated array class
+				 - NOTE: the class that Named Array's generate have an additional degree of memory safety when accessing array elements
+			 - Member format strings
+				 - example : `struct Channel { offset: U32 format "offset 0x{x}"}` - displays a hexadecimal value
+				 - if the member is an array with a size > 1, then the format is applied to each element
+			 - For structs, you can use previously defined named types as the members 
+				 - ex: `array A = [2] U32; struct S2 { a: A };`
+			 - ORDER OF MEMBERS IS VERY IMPORTANT. This is because the order the members are written in is typically the order in which the members will be generated in the code. This means that when serializing, the code will be read from top down.
+				 - How this can cause issues:
+					 - lets say we have two structs `struct A { x: U32, y: string}; struct B { y: string, x: U32 }; `
+					 - if we're serializing from A to B, that means we're converting `x` from U32 to a string `y`, then taking that string `y` and converting it back to U32: this will just produce an unreadable U32 number
+					 - if we were to swap the positioning of the members `x` and `y` in the two structs, then it would convert a string to U32 and then back to a string
+				 - default values for members doesn't matter
+					 - ex: `struct S { x: U32, y: string } default { y = "abc", x = 5}`
+						 - it won't change anything to put `y` before `x` in the default declaration
+		 - Abstract type - doesn't have a type definition, very similar to generics in Java
+			 - if given the FPP code: `type T; array MyArray = [3] T;`
+				 - to convert this to English, this is saying "A type T exists, it's defined in the implementation, not in the model."
+				 - the generated code will create: 
+					 - `type T` - doesn't generate anything
+					 - `array MyArray` - C++ class is generated, creating `MyArrayArrayAc.hpp` and `MyArrayArrayAc.cpp`
+						 - within `MyArrayArray.hpp` there's an include for `T.hpp`
+						 - the user needs to define the header file `T` in the way they need to
+				 - NOTE: there are a few special types that are abstract in the model, but are translated to fully developed implementations during the translation to XML
+		 - Enum type - FPP model can contain more than one enum definition
+			 - an Enum is kinda like an object, but it can only represent one attribute at any given time
+			 - example enum declaration with a few enumerated constants
+				 - `enum Decision {YES, NO, MAYBE}`
+					 - can also separate each enumerated constant by a newline and without commas
+			 - example usage of an enum:
+				 - `constant myDecision = Decision.MAYBE`
+				 - can also use enums as types and values for array's:
+					 - `array Decisions = [3] Decision default Decision.MAYBE`
+			 - each enumerated constant has an assigned numeric value, starting from 0 and increasing by 1 for each constant. you can assign specific numeric values yourself:
+				 - `enum E { A = 1, B = 2, C = 3 }`
+				 - if you choose to give custom values, you must do it for each constant
+			 - values must be distinct, meaning that you can't make `A = 1 + 1`, it must be `2`
+			 - the default representation type for enum constant values is I32, to specify a different type, put a colon after the name of the enum and add the desired type
+				 - ex: `enum HeheHaha : U8 { A, B, C }`
+			 - GDS NOTE: The gds will always assume enum constants are I32, so don't change the type if you plan to use an enum with the GDS
+			 - default enum constant; you can use constants that are already declared in the enum
+				 - `enum Decision { YES, NO, MAYBE } default MAYBE` - don't have to specify `MAYBE`'s type because it's already declared in `Decision`
+	 - Ports - ports are connections between two component instances - consist of the port name, the data type that will be carried across the port, and an optional return type 
+		 - example port declaration: `port P1()` this is equivalent to `port P`. this port simply has a name and no parameters
+			 - `port P2(a: U32, b: F32)` - a port `P2` with two parameters
+		 - port parameters can be of any valid type, they can be abstract (generic), arrays, etc...
+	 - handler functions - there are output ports and input ports for components
+		 - if you invoke an output port, the input port handler function needs to run
+			 - and if you invoke an input port, the output port handler function needs to run
+		 - each input port can be synchronous or asynchronous, and each port has a type
+		 - if the port carries a primitive value (like I32 or U16...) then the port is translated to a C++ value parameter, otherwise the port is translated to a reference parameter
+			 - ex. `type T; port P(a: U32, b: T);` will be converted to something like: `virtual void pIn_handler(U32 a, const T& b);`
+			 - if an input port is synchronous, then the invocation is a direct call of the input handler function
+		 - example input handler:
+			 - assume pIn is a synchronous input port `void C2::pIn_handler(U32 a, const T& b) {}` - a is a local copy of a U32 value, b is a constant reference to T data passed in by c1
+		 - to make a local copy of the data: `auto b1 = b`
+		 - if you wanna have the handler and the invoking component to share data as a parameter, then you can make reference parameters 
+			 - ex. `virtual void pIn_handler(U32 a, const T& b, T& c);`
+			 - this acts the same as a const reference parameter
+			 - the main reason to use a reference parameter is to change the value of the reference parameter and use it as a return value
+		 - return values - write an arrow to indicate return value `->` followed by a type 
+			 - ex. `port P1 -> U32` - a port with no parameters that returns a U32
+		 - only for synchronous ports does using ref parameters provide another way to return values from a port
