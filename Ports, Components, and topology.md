@@ -1,0 +1,72 @@
+ - invocation - When components use ports to communicate with each other
+ - ports - have three things (input/output, synchronous/asynchronous, guarded/not guarded)
+	 - the main point of ports is that they act as function calls to specific functions
+	 - port types represent the date being conveyed across the port 
+	 - Can use any primitive data type or regular data type like 'float'
+	 - pointers and references are allowed as arguments
+		 - be careful with memory management because the memory is shared between the two components when the port is invoked
+		 - the port's type is the same thing as the port invocations' "data_type"
+	 - directionality - input or output
+		 - this directionality is the direction of 'invocation' from an originating component to another output port that can sometimes retrieve data
+	 - Multiple output ports can be connected to a single input port 
+	 - A single output port can be connected to only one input port at a time
+	 - Synchronous vs Asynchronous
+		 - synchronous 
+			 - waits for response from the component receiving the data before finishing 
+			 - only type that allows for ports to return data, since it's expecting a response
+				 - however, when returning data through ports, serialization for the port must be disabled, since serialization is only for transmission
+		 - asynchronous 
+			 - used for component inter-communication
+			 - can send or receive messages without waiting for a response
+			 - the port call is placed on a queue and "dispatched on a thread that empties the queue"
+	 - guarded - makes it so that only one invocation (ie. a send or receive operation) can be done on the component at a time
+		 - done to prevent data corruption or a 'race condition' (where two threads are attempting to change the same data at once)
+		 - only ran after "locking a mutex shared by all guarded ports in the component"
+	 - 'kind' - attribute that specifies 'guarded' or 'unguarded'
+	 - port design vs instantiation:
+		 - design = (name, arguments to be transported, etc) = "data_type"
+		 - instantiation = (directionality, synchronous/asynchronous nature, guarded/not guarded) - part of the component design, not the port design = "kind"
+	 - port call serialization - serialization = conversion into a format that is easily transmitted or stored (such as a JSON file or a binary file)
+		 - takes arguments supplied to the port and translates them to a data buffer 
+			 - basically this is converting data from variables and objects and making them into a format that can be transmitted over a port
+		 - basically what happens is that the data is serialized then placed on message queues in the receiving component
+	 - Special serialized ports
+		 - Any serialization output port can be connected to any input port type, and vis-a-versa
+			 - For input ports, the calling port detects a connection and serializes arguments.
+			 - For the output ports, the serialized port calls an interface on the typed port that deserializes arguments
+				 - this means that the data will be automatically converted into a proper data type
+		 - serialization ports do not support ports with return types
+		 - **Serialization ports are used for when components don't need to know the type of data that's being passed THROUGH them**
+	 - Modules - collection of components that interact with each other
+	 - Components
+		 - The idea is that components should ONLY use ports to communicate between each other
+		 - Three types of components
+			 - passive - has no thread and doesn't support asynchronous port invocation nor asynchronous commands. 
+				 - having 'no thread' means that it's ran whenever another component that does have a thread calls this component
+					 - basically it's ran on a 'as-needed' basis
+			 - active - has a thread and a queue
+				 - the thread executes port calls from the queue as on the 'execution context'
+					 - 'execution context' is just a fancy way of saying 'it'll run in the order it was told to' 
+				 - can define use port kinds
+				 - The danger with active components is that they can be synchronous and guarded, and with this comes the issue with the calling and invoked components
+					 - the 'called component' (aka the component that was told to execute) block the 'invoked component' (the component that told the other component to execute).
+					 - when a synchronous or guarded component calls on another component, it has to wait for the called component to finish executing before continuing with the rest of what it has to do
+			 - queued component - has no thread but does have a queue - rarely used
+				 - handles asynchronous commands and port invocations
+					 - must implement at least one synchronous port invocation that unloads and handles the messages on the queue
+					 - **the 'execution context' is supplied by the invoker**
+		 - components are composed of three different classes
+			 - core framework class - represent the component types and can inherit from active, passive, and queued classes
+				 - this is just the base class that all components need for basic functionality
+			 - generated component-specific base - direct descendant of the core framework class - automatically generated to provide the barebones implementation of the component
+			 - Component-Specific Developer Implementation Class - inherits from the generated class - this is the only one the developer writes.
+		 - what kinds of ports each component type can have
+			 - passive - support synchronous and guarded ports, no queue to support asynchronous ports
+			 - active - support all three port types - needs at least one asynchronous port otherwise it would just be a passive component with a meaningless queue and thread
+			 - queued - supports all three port types - needs at least one synchronous or guarded port and at least one asynchronous port
+				 - need synchronous or guarded port because it needs the ability to unload the internal queue, because a queued component doesn't have a thread to automatically unload the queue
+				 - must define one asynchronous port too because it would also become a passive component with an unused queue
+			 - **output ports are invoked by calling generated base class functions from the implementation class.** The behavior of the output port is defined in the input port side of the connection, thus there's no special restrictions to use output ports
+	 - **TOPOLOGY** - the cluster of interconnected components
+		 - the topology is defined prior to runtime, but the actual connections are formed during the setup phase of FPrime's runtime software
+		 - **There should be NO code dependencies between the components,** only dependencies on port interface types

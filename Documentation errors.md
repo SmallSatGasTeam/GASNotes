@@ -1,0 +1,3 @@
+ - XML Specifications
+	 - When describing warning lo and hi for events under components, it says warning lo and warning lo, the second warning should say 'warning hi'
+	 - 

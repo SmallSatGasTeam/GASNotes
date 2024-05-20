@@ -1,0 +1,83 @@
+ - The main idea is that flight software is controlled through commands, and monitored using a set of events and telemetry channels
+ - Commands
+	 - pipes are intended for component to component communication
+	 - commands are designed for user interaction with a component 
+	 - commands can be sent by the user via `Svc::CmdDispatcher`
+		 - these commands are sent to a handling component that will invoke some behavior
+	 - The component handling the command defines a hander function to run when it receives the command
+	 - command types
+		 - opcode - unique numerical value representing the command - automatically adjusted as to not collide with other command id's
+		 - mnemonic - text value uniquely representing the command - instance name of the component is added to this to make it as unique as possible 
+		 - arguments - set of data types supplied to the supplied to the command handler - sent from ground
+		 - synchronization "kind" - (sync, async, guarded) - controls the execution context the command runs in
+			 - sync and guarded commands run on the execution context defined by the command dispatcher
+			 - async commands execute on the component threads and can specify a priority 
+			 - guarded commands are protect from reentrancy (being called again while other code is in the middle of execution)
+		 - the code in the 'component-specific generated base class' calls a function to invoke the user defined command handler
+			 - hooked up by connecting the command registration, command dispatch, and command response ports
+		 - when commands are defined for a component, ports are automatically added for registering and receiving commands
+			 - code is also automatically generated for reporting an execution status when finished
+		 - each component that handles commands should be hooked up to the command dispatcher connecting the registration, dispatch, and response ports in parallel
+		 - **command dispatcher** - takes a command with its arguments, figures out which component should handle it, sends the arguments to that component, and then waits for the component to finish handling the command
+		 - for many projects, commands need to be sequenced in order
+			 - this is why `Svc::CmdSequencer` exists
+				 - the command sequencer reads a defined sequence of commands and sends each in order to the command dispatcher, while they're getting dispatched the command execution status is returned to the sequencer
+					 - this is the alternate way to send command buffers to the command dispatcher than directly from the ground
+				 - if a command fails to respond from the dispatcher, then the sequence terminates
+	 - events - represent a log of activities taken by the embedded system - can be thought of in the same way as a program execution log
+		 - events are sent out via `Svc::ActiveLogger` which is a component
+			 - **components and their defining commands should hook up the log port to the ActiveLogger component**
+			 - if console logging is desired, the text log port can be hooked up to the `Svc:: PassiveConsoleTextLogger` component
+		 - events are defined per component and are typically used to capture what the component is doing
+		 - events can be sporadic, but should always be captured for downlink
+		 - event properties:
+			 - id - numeric id uniquely defining the event, automatically offset by the component's base id to ensure uniqueness
+			 - name - unique text identifier for this event - component instance name is attached to this to make it more unique
+			 - severity - text identifier stating the severity of the event - use of the different types is entirely determined by us (aka the definitions of different levels of severity are very loose)
+				 - Diagnostic - debug messages, usually not sent to the ground
+				 - Activity_LO - info messages, typically come from background tasks
+				 - Activity_HI - info messages come from the foreground tasks
+					 - background vs foreground tasks are determined by us basically, because the definition of these two things are very loose
+				 - Warning_LO - less severe warning
+				 - Warning_HI - high-severity warning events, however the system can still function
+				 - Fatal - fatal events indicating that the system **MUST** reboot
+				 - Command - event that trace the execution of commands
+			 - arguments - can be primitive or complex types that represent the variable data associated with the event - injected into the format string for a full text representation of the event
+			 - format string - C-style format string used to reconstruct a text version of the event
+		 - code in the component-specific generated base class provides a function that can be called to emit each event defined by the component. 
+			 - this function requires an argument for each argument defined by the event
+			 - code generator automatically adds ports for retrieving a time tag and sending events
+		 - two independent ports for sending events
+			 - binary log output port for sending outside the system
+			 - text log output port for on-board consoles
+		 - logging - the component implementation creates an event, the base class gets the current time, the component sends the event to a log, the log reads the event from its queue, the log sends the event to the ground
+			 - events first get a time tag to represent when they happened and are sent to the `Svc::ActiveLogger` component while they're being sent to the ground
+			 - this component both processes the event and also sees and responds to Fatal severity events
+	 - channels - aka telemetry channel or just telemetry - represent the reading of some portion of the system state
+		 - the state is either restricted to "send on change" or "send per update" even if the update hasn't changed, it'll still sent that update
+		 - channels are broken up per component and are sampled at a set rate and downlinked 
+		 - channels types:
+			 - id - unique id of the channel
+			 - name - unique text name
+			 - data_type - type of the value of the channel - can be primitive or complex types
+			 - update - "on_change" to update only when the written value changes, and omitted to always downlink - "on update" to send every time the data is recalculated
+		 - code in the component-specific generated base class provides a function call to set the current value for a channel id. 
+			 - this function must be supplied with a typed argument for the value 
+			 - the code generator automatically adds ports for retrieving time tag and sending channelized data
+	 - Telemetry Database - acts as double-buffered (has two buffers) storage for telemetry values.  - base class gets the current time, updates the telemetry database with the new time value, then periodically, the telemetry database sends the current telemetry data to the ground
+		 - components can update channels at any time, but be aware that the value will be read from the telemetry database and sent to the ground at a set rate 
+		 - components using this service should hook up the telemetry port to the telemetry database using `Svc:TlmChan`
+	 - Parameters - traditional means of storing long term things into the system, such as calibration values that need to be kept even through power cycles
+		 - code generation handles parameters defined by a component
+		 - parameter properties:
+			 - id - unique id
+			 - name - unique name
+			 - data type - primitive or complex types that represent the type of value being stored
+			 - default value - default values assigned in the event that the parameter cannot be retrieved 
+		 - code generator automatically adds ports for retrieving parameters 
+			 - during initialization, a public method in the class is called and retrieves the parameters and stores copies locally
+				 - calls can reoccur if the parameter is updated
+			 - the codes' generated base class provides a function to call for each parameter to retrieve the stored copy, then an implementation class can retrieve the value whenever the parameter value is needed
+		 - parameter database - `Svc:PrmDb` - the parameter manager loads a file with settings from the file system when the system starts, then uses those settings, (components can read and change these settings) parameter manager saves the new values back to the file system when instructed
+			 - this component provides ports to get and set parameters which are stored in a file that persists across reboots
+	 - Serialized ports note: the `Svc` components use serialize ports to generically handle port data of different types to support uplink and downlink
