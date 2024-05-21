@@ -16,7 +16,7 @@
 	- "--deployment"
 	- "--project"
 	- "--module"
-- Note, the fprime documentation mentions being able to use fprime-util new --port, but this is not actually supported
+- Note, the fprime documentation mentions being able to use fprime-util new --port, but this is not actually supported. Instead, use --module and create the ports inside that module
 ### purge
 - Deletes the build files
 - Often used if you messed something up and are getting weird errors that you don't understand
