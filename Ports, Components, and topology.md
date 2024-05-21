@@ -1,7 +1,7 @@
  - invocation - When components use ports to communicate with each other
  - ports - have three things (input/output, synchronous/asynchronous, guarded/not guarded)
 	 - the main point of ports is that they act as function calls to specific functions
-	 - port types represent the date being conveyed across the port 
+	 - port types represent the data being conveyed across the port 
 	 - Can use any primitive data type or regular data type like 'float'
 	 - pointers and references are allowed as arguments
 		 - be careful with memory management because the memory is shared between the two components when the port is invoked
