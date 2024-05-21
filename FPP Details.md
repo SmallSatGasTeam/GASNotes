@@ -159,6 +159,203 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			 - ex. `virtual void pIn_handler(U32 a, const T& b, T& c);`
 			 - this acts the same as a const reference parameter
 			 - the main reason to use a reference parameter is to change the value of the reference parameter and use it as a return value
-		 - return values - write an arrow to indicate return value `->` followed by a type 
+		 - return values - write an arrow to indicate return value `->` followed by a type - only synchronous ports can do this
 			 - ex. `port P1 -> U32` - a port with no parameters that returns a U32
 		 - only for synchronous ports does using ref parameters provide another way to return values from a port
+			 - ex. `type T; port P(a: U32, b: T, ref c: T)`
+				 - the generated code may look something like: `virtual void pIn_handler(U32 a, const T& b, T& c);`
+				 - since `b` isn't marked as `ref`, it generates `const T& b`, and since `c` is marked as `ref`, it generates the code `T& c`
+			 - when the input port is synchronous, a reference parameter refers to the exact data being given
+			 - when the input port is asynchronous, a reference parameter refers to data that was copied and then given 
+		 - ports behave very similarly to just a basic function, you can't have more than one thing returned at once, so if you want to return more things you can do so by updating the parameters by having them pass by reference
+			 - just be careful about using pass-by-refrence, as it would be very bad if two components were trying to change the same data at the same time
+	 - Components
+		 - types: active, passive, queued
+		 - example of a passive component with no members:
+			 - `passive component C {}`
+		 - port instances - instantiates a port - definition requires a kind, a name, and a type
+			 - kinds:
+				 - async input - the input to this component arrives on a message queue, and then dispatched on this components thread (if it's an active component) or on the thread of another port (if this component is queued) - passive components cannot have any amount of these - no return types
+				 - sync input - this input invokes a handler defined in the current component, and the runs on the thread of the caller
+				 - guarded input - everything is the same as a sync input, except only one thread can use this input at a time
+				 - output - output of the component
+			 - example component that adds two F32 values and outputs the answer as a F32 value:
+				  `port F32Value(value: F32);`
+				  `passive component F32Adder {`
+					  `sync input port f32ValueIn1: F32Value; `
+					  `sync input port f32ValueIn2: F32Value; `
+					  `output port f32ValueOut: F32Value;`
+		        `}`
+				- the input ports instantiated within the component block are the port instances
+			- NOTE: port instances are typically referred to as just 'ports'
+			- when you're creating a port instance, you're actually creating an array of port instances, the size of which defaults to a size of 1 if not specified and acts as a single element
+			- to specify array size:
+				- `sync input port f32ValueIn: [2] F32Value` - single array of two input ports 
+			- priority - only async ports can be assigned a priority 
+				- priority is simply a numerical value, ex: 
+					- `async input port f32ValueIn1: F32Value priority 10`
+				- default priorities are supplied if none are specified. generally, the priorities are meant to regulate the order that elements are meant to be dispatched from the message queue
+					- NOTE: if the message queue is full and now overflowing, a FSW assertion will fail, and F' will have the system restart
+					- you can actually specify what you want to happen when the message queue overflows:
+						- assert: Fail an FSW assertion (default)
+						- block: Block the sender until the queue has space
+						- drop: Drop the incoming message and continue as normal
+					- example usage of specifying queue full behavior:
+						- `async input port f32ValueIn1: F32Value priority 10 block`
+						- `async input port f32ValueIn2: F32Value drop`
+						- the queue full behavior is specified after priority
+			- serial port instances - if a port is a `serial` port, then it can't be of any other type
+				- a serial port instance doesn't care about what type of data is going through it, the data is converted to or from a specific type of data at either end of the connection
+				- example of a passive component taking serial data and copying it onto 10 streams
+					`passive component SerialSplitter {`
+						`sync input port serialIn: serial`
+						`output port serialOut: [10] serial`
+					`}`
+					- this allows for sending several unrelated types of data over the same port connection
+						- this can be useful by having a component on either side of a network act as a hub that directs all data to and from components on that side of the network
+						- the only downside to using this technique is that you loose compile-time type checking 
+			- special port instances - needs a predefined behavior that's provided by the F' framework
+				- six special port behaviors:
+					- commands
+					- events
+					- telemetry
+					- parameters
+					- time 
+					- data products
+			- command ports - a way to send instruction to the satellite to perform an action
+				- keywords for the special command behaviors: (if a component receives commands then all three port types are required)
+					- `command reg`: a port for sending command registration requests
+						- ex: `command reg port cmdRegOut`
+					- `command recv`: a port for receiving commands
+						- ex: `command recv port cmdIn`
+					- `command resp`: a port for sending command responses
+						- `command resp port cmdResponseOut`
+				- any component can have at most one kind of each command port 
+				- as the FPP file is translated to C++, the ports are converted to typed port instances and use a predefined port type:
+					- `recv` uses port `Fw.Cmd`
+					- `reg` uses port `Fw.CmdReg`
+					- `resp` uses port `Fw.CmdResponse`
+					- the definitions for these ports can be found in `Fw/Cmd`, however to check basic examples you need to use this simple definition before the component declaration otherwise `fpp-check` won't pass:
+						`module Fw {`
+							`port Cmd`
+							`port CmdReg`
+							`port CmdResponse`
+						`}`
+						- these definitions won't actually work, but it'll allow for you to use `fpp-check` on the file without having to worry about the `Fw` definitions
+			- event ports - events are meant to mark when something important has happened
+				- two types of ports:
+					- `event`: port for emitting events as serialized bytes 
+						- ex: `event port eventOut`
+						- when converted this uses `Fw.Log`
+					- `text event`: port for emitting events as human-readable text (this is typically used for testing and debugging on the ground)
+						- ex: `text event port textEventOut`
+						- when converted this uses `Fw.LogText`
+					- simplified version of the definitions of `Fw.Log` and `Fw.LogText` (MEANT FOR TESTING ONLY)
+						`module Fw {`
+							`port Log`
+							`port LogText`
+						`}`
+			 - telemetry ports - data regarding the state of the system - any component can at most have one telemetry port
+				 - example telemetry port: `telemetry port tlmOut`
+				 - basic version of the definition found in `Fw/Tlm`:
+				 `module Fw {`
+					 `port Tlm`
+				 `}`
+			 - parameter ports - configurable constant that can be updated from the ground, current parameter values are stored in the F Prime component **parameter database**
+				 - `param get`: port for getting the current value of a parameter from the databse
+					 - ex: `param get port prmGetOut`
+				 - `param set`: port for setting the current value of a parameter in the database
+					 - ex: `param set port prmSetOut`
+				 - simplified version of the definitions of `Fw.PrmGet` and `Fw.PrmSet` (MEANT FOR TESTING ONLY) - actual definition found in `Fw/Prm`
+						`module Fw {`
+							`port PrmGet`
+							`port PrmSet`
+						`}`
+			 - time get ports - allows component to get the system time from a time component 
+				 - example: `time get port timeGetOut`
+				 - simplified version of the definition of `Fw.Time`, actual definition found in `Fw/Time`:
+					 `module Fw {`
+						 `port Time`
+					 `}`
+			 - Data product ports - collection of data that can be stored onto an onboard file system, then given a priority, and then downlinked in their priority order - a component can have at most one of each type of product port
+				 - data products are stored in containers, these containers hold records which are the units of data, and they also hold a header that describes their contents
+				 - different types of product behaviors:
+					 - `product get`: port meant for synchronously requesting a memory buffer to store a container - uses `Fw.DpGet`
+						 - ex: `product get port productGetOut`
+					 - `product request`: port for asynchronously requesting a buffer to store a container - uses `Fw.DpRequest`
+						 - ex: `product request port productRequestOut`
+					 - `product recv`: port for receiving a response to an asynchronous buffer request - uses `Fw.DpResponse`
+						 - ex: `async product recv port productRecvIn priority 10 assert`
+					 - `product send`: port for sending a buffer that stores a container, after the container has been filled with data - uses `Fw.DpSend`
+						 - ex: `product send port productSendOut`
+				 - if there's any amount of data product ports, there must be a product get port and a product send port
+				 - definitions for all the typed ports can be found in `Fw/Dp`, here's a simple definition:
+					 `module Fw {`
+						 `port DpGet`
+						 `port DpRequest`
+						 `port DpResponse`
+						 `port DpSend`
+					 `}`
+			 - internal ports - port that a component can use to send messages to itself - simply used as a replacement if an output and input port reside in the same component - really only make sense for active and queued components
+				 - example, instead of this:
+					 `type T`
+					 `port P(t: T)`
+					 `active component ExternalSelfMessage {`
+						 `async input port pIn: P`
+						 `output port pOut: P`
+					 `}`
+				  - we can do this:
+					  `type T`
+					  `active component InternalSelfMessage {`
+						  `internal port pInternal(t: T)`
+					  `}`
+				  - an internal port is like two ports: an output port and an async input port, fused into one
+				  - internal ports don't need a named definition, they can just be declared directly within a component 
+				  - you can add priority and queue-full behavior to internal ports
+					  - `internal port pInternal(t: T) priority 10 drop`
+		  - commands - commands are sent from the GDS 
+			  - three kinds of commands:
+				  - async: command arrives on a message queue, to be dispatched on this component's thread (if the component is active) or on the thread of a port invocation (if the component is queued)
+				  - sync: command invokes a handler defined in the current component, and runs on the thread of the caller
+				  - guarded: same as sync input, but it can only be accessed by one thread at a time 
+			  - example:
+				  `active component Action {`
+					  `command recv port cmdIn`
+					  `command reg port cmdRegOut`
+					  `command resp port cmdResponseOut`
+					  `async command START`
+					  `async command STOP`
+				  `}`
+				  - explaination: 
+					  - `START` is asynchronous which will make it so that when a `START` command is dispatched to an instance of this component, it's put on a queue. after some time the message will be taken off the queue and called to the corresponding handler on the thread of the component 
+					  - `STOP` is synchronous, which means that the command will run immediately on the thread of the invoking component, since the command runs immediately, its handler should be very short. 
+						  - for example the handler could set a stop flag and then exit
+					  - notice that there's three command ports, this is because all three of those command ports are required for any component that has commands
+					  - async commands also REQUIRE a message queue, so they're allowed only for active and queued components
+			  - formal parameters:
+				  - you may specify one or more formal parameters when specifying a command - parameters are bound to arguments when the command is sent to the satellite 
+				  - example of a switch component with two states: `ON` and `OFF`
+					  `enum State {`
+						  `OFF`
+						  `ON`
+					  `}`
+					  `active component Switch {`
+						  `command recv port cmdIn`
+						  `command reg port cmdRegOut`
+						  `command resp port cmdResponseOut`
+						  `async command SET_STATE (`
+							  `state: State`
+						  `)`
+					  `}`
+			  - opcodes - number that uniquely identifies the command, also has a name but this is mainly just for human interaction from the ground
+				  - typically opcodes start at 0
+					  - to specify your own opcode, just use the keyword `opcode` followed by a numerical value
+						  - ex: `async command COMMAND_2(a: F32, b: U32) opcode 0x10`
+							  - this is also showing the opcode expressed as a hexadecimal to display that an opcode can be expressed as any numerical value
+						  - this may be obvious, but don't set two commands to have the same opcode
+							  - ex. `async command COMMAND; async command COMMAND_2 opcode 0;` - this is bad because the default opcode given to `COMMAND` is already `0`, so assigning `0` to `COMMAND_2` makes it so the two commands now have the same opcode
+			  - you can also assign priority and queue-full behavior
+				  - ex. `async command COMMAND_3(a: string) opcode 0x10 priority 30 drop`
+		  - Events 
+			  - 
+			  - 
