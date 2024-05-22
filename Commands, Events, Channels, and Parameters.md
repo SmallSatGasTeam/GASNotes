@@ -1,6 +1,6 @@
  - The main idea is that flight software is controlled through commands, and monitored using a set of events and telemetry channels
  - Commands
-	 - pipes are intended for component to component communication
+	 - ports are intended for component to component communication
 	 - commands are designed for user interaction with a component 
 	 - commands can be sent by the user via `Svc::CmdDispatcher`
 		 - these commands are sent to a handling component that will invoke some behavior
