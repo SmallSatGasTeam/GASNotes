@@ -22,7 +22,7 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			  - can use structs in arrays, just using curly braces to denote it's a struct
 				  - `constant something = [{x=2, y=1}, {z=1, u=12}]`
 		  - order of constant declarations don't matter, thus the following code is fine:
-			```
+			```FPP
 			const a = b;
 			const b = 2;
 			```
@@ -36,7 +36,7 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 	 - Modules - group of elements - basically used for organizational purposes; used in place of object oriented programming kinda
 		 - to access constants declared in a module, you do `ModuleName.constantName`
 		 - example:
-		```
+		```FPP
 		module M {
 			constant a = 1;
 		}
@@ -180,12 +180,14 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 				 - guarded input - everything is the same as a sync input, except only one thread can use this input at a time
 				 - output - output of the component
 			 - example component that adds two F32 values and outputs the answer as a F32 value:
-				  `port F32Value(value: F32);`
-				  `passive component F32Adder {`
-					  `sync input port f32ValueIn1: F32Value; `
-					  `sync input port f32ValueIn2: F32Value; `
-					  `output port f32ValueOut: F32Value;`
-		        `}`
+				```FPP
+				  port F32Value(value: F32);
+				  passive component F32Adder {
+					  sync input port f32ValueIn1: F32Value; 
+					  sync input port f32ValueIn2: F32Value; 
+					  output port f32ValueOut: F32Value;
+		        }
+		        ```
 				- the input ports instantiated within the component block are the port instances
 			- NOTE: port instances are typically referred to as just 'ports'
 			- when you're creating a port instance, you're actually creating an array of port instances, the size of which defaults to a size of 1 if not specified and acts as a single element
@@ -207,10 +209,12 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			- serial port instances - if a port is a `serial` port, then it can't be of any other type
 				- a serial port instance doesn't care about what type of data is going through it, the data is converted to or from a specific type of data at either end of the connection
 				- example of a passive component taking serial data and copying it onto 10 streams
-					`passive component SerialSplitter {`
-						`sync input port serialIn: serial`
-						`output port serialOut: [10] serial`
-					`}`
+					```FPP
+					passive component SerialSplitter {
+						sync input port serialIn: serial
+						output port serialOut: [10] serial
+					}
+					```
 					- this allows for sending several unrelated types of data over the same port connection
 						- this can be useful by having a component on either side of a network act as a hub that directs all data to and from components on that side of the network
 						- the only downside to using this technique is that you loose compile-time type checking 
@@ -236,11 +240,13 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 					- `reg` uses port `Fw.CmdReg`
 					- `resp` uses port `Fw.CmdResponse`
 					- the definitions for these ports can be found in `Fw/Cmd`, however to check basic examples you need to use this simple definition before the component declaration otherwise `fpp-check` won't pass:
-						`module Fw {`
-							`port Cmd`
-							`port CmdReg`
-							`port CmdResponse`
-						`}`
+						```FPP
+						module Fw {
+							port Cmd
+							port CmdReg
+							port CmdResponse
+						}
+						```
 						- these definitions won't actually work, but it'll allow for you to use `fpp-check` on the file without having to worry about the `Fw` definitions
 			- event ports - events are meant to mark when something important has happened
 				- two types of ports:
@@ -251,32 +257,40 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 						- ex: `text event port textEventOut`
 						- when converted this uses `Fw.LogText`
 					- simplified version of the definitions of `Fw.Log` and `Fw.LogText` (MEANT FOR TESTING ONLY)
-						`module Fw {`
-							`port Log`
-							`port LogText`
-						`}`
+						```FPP
+						module Fw {
+							port Log
+							port LogText
+						}
+						```
 			 - telemetry ports - data regarding the state of the system - any component can at most have one telemetry port
 				 - example telemetry port: `telemetry port tlmOut`
 				 - basic version of the definition found in `Fw/Tlm`:
-				 `module Fw {`
-					 `port Tlm`
-				 `}`
+				```FPP
+				 module Fw {
+					 port Tlm
+				 }
+				```
 			 - parameter ports - configurable constant that can be updated from the ground, current parameter values are stored in the F Prime component **parameter database**
 				 - `param get`: port for getting the current value of a parameter from the databse
 					 - ex: `param get port prmGetOut`
 				 - `param set`: port for setting the current value of a parameter in the database
 					 - ex: `param set port prmSetOut`
 				 - simplified version of the definitions of `Fw.PrmGet` and `Fw.PrmSet` (MEANT FOR TESTING ONLY) - actual definition found in `Fw/Prm`
-						`module Fw {`
-							`port PrmGet`
-							`port PrmSet`
-						`}`
+					```FPP
+						module Fw {
+							port PrmGet
+							port PrmSet
+						}
+					```
 			 - time get ports - allows component to get the system time from a time component 
 				 - example: `time get port timeGetOut`
 				 - simplified version of the definition of `Fw.Time`, actual definition found in `Fw/Time`:
-					 `module Fw {`
-						 `port Time`
-					 `}`
+				```FPP
+					 module Fw {
+						 port Time
+					 }
+				```
 			 - Data product ports - collection of data that can be stored onto an onboard file system, then given a priority, and then downlinked in their priority order - a component can have at most one of each type of product port
 				 - data products are stored in containers, these containers hold records which are the units of data, and they also hold a header that describes their contents
 				 - different types of product behaviors:
@@ -290,25 +304,31 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 						 - ex: `product send port productSendOut`
 				 - if there's any amount of data product ports, there must be a product get port and a product send port
 				 - definitions for all the typed ports can be found in `Fw/Dp`, here's a simple definition:
-					 `module Fw {`
-						 `port DpGet`
-						 `port DpRequest`
-						 `port DpResponse`
-						 `port DpSend`
-					 `}`
+					 ```FPP
+					 module Fw {`
+						 port DpGet
+						 port DpRequest
+						 port DpResponse
+						 port DpSend
+					 }
+					 ```
 			 - internal ports - port that a component can use to send messages to itself - simply used as a replacement if an output and input port reside in the same component - really only make sense for active and queued components
 				 - example, instead of this:
-					 `type T`
-					 `port P(t: T)`
-					 `active component ExternalSelfMessage {`
-						 `async input port pIn: P`
-						 `output port pOut: P`
-					 `}`
+					 ```FPP
+					 type T
+					 port P(t: T)
+					 active component ExternalSelfMessage {
+						 async input port pIn: P
+						 output port pOut: P
+					 }
+					 ```
 				  - we can do this:
-					  `type T`
-					  `active component InternalSelfMessage {`
-						  `internal port pInternal(t: T)`
-					  `}`
+					  ```FPP
+					  type T
+					  active component InternalSelfMessage {
+						  internal port pInternal(t: T)
+					  }
+					  ```
 				  - an internal port is like two ports: an output port and an async input port, fused into one
 				  - internal ports don't need a named definition, they can just be declared directly within a component 
 				  - you can add priority and queue-full behavior to internal ports
@@ -319,13 +339,15 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 				  - sync: command invokes a handler defined in the current component, and runs on the thread of the caller
 				  - guarded: same as sync input, but it can only be accessed by one thread at a time 
 			  - example:
-				  `active component Action {`
-					  `command recv port cmdIn`
-					  `command reg port cmdRegOut`
-					  `command resp port cmdResponseOut`
-					  `async command START`
-					  `async command STOP`
-				  `}`
+				  ```FPP
+				  active component Action {
+					  command recv port cmdIn
+					  command reg port cmdRegOut
+					  command resp port cmdResponseOut
+					  async command START
+					  async command STOP
+				  }
+				  ```
 				  - explaination: 
 					  - `START` is asynchronous which will make it so that when a `START` command is dispatched to an instance of this component, it's put on a queue. after some time the message will be taken off the queue and called to the corresponding handler on the thread of the component 
 					  - `STOP` is synchronous, which means that the command will run immediately on the thread of the invoking component, since the command runs immediately, its handler should be very short. 
@@ -335,18 +357,20 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			  - formal parameters:
 				  - you may specify one or more formal parameters when specifying a command - parameters are bound to arguments when the command is sent to the satellite 
 				  - example of a switch component with two states: `ON` and `OFF`
-					  `enum State {`
+					  ```FPP
+					enum State {
 						  `OFF`
 						  `ON`
-					  `}`
-					  `active component Switch {`
-						  `command recv port cmdIn`
-						  `command reg port cmdRegOut`
-						  `command resp port cmdResponseOut`
-						  `async command SET_STATE (`
-							  `state: State`
-						  `)`
-					  `}`
+					  }
+					  active component Switch {
+						  command recv port cmdIn
+						  command reg port cmdRegOut
+						  command resp port cmdResponseOut
+						  async command SET_STATE (
+							  state: State
+						  )
+					  }
+					  ```
 			  - opcodes - number that uniquely identifies the command, also has a name but this is mainly just for human interaction from the ground
 				  - typically opcodes start at 0
 					  - to specify your own opcode, just use the keyword `opcode` followed by a numerical value
@@ -372,4 +396,4 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			  - formal parameters - bound to arguments, when the component instance emits the event; argument values appear in the formatted text that describes the event
 				  - these are the exact same as for port definitions, except there's no reference parameter (aka no parameter can be pass-by-reference)
 			  - example
-				  - 
+				   `event Event2( case: Case, value: F64x3`
