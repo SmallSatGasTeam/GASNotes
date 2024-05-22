@@ -1,3 +1,6 @@
  - XML Specifications
 	 - When describing warning lo and hi for events under components, it says warning lo and warning lo, the second warning should say 'warning hi'
+ - In the FPP user guide, the example shown in 9.6.2 is partially wrong
+	 - when describing `Event 2`, it states the example output would look like `"Saw value [ 0.001, 0.002, 0.003] for case A"`, when it would actually look something like `"Saw value A for case [ 0.001, 0.002, 0.003]"`
+		 - This is because the `case` parameter is declared before the `value` parameter. Ironically, the behavior of how parameter order correlates to the format string is the exact behavior they're trying to display here.
 	 - 
