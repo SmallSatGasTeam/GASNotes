@@ -356,6 +356,20 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 							  - ex. `async command COMMAND; async command COMMAND_2 opcode 0;` - this is bad because the default opcode given to `COMMAND` is already `0`, so assigning `0` to `COMMAND_2` makes it so the two commands now have the same opcode
 			  - you can also assign priority and queue-full behavior
 				  - ex. `async command COMMAND_3(a: string) opcode 0x10 priority 30 drop`
-		  - Events 
-			  - 
-			  - 
+		  - Events - something that emits a serialized event report that can be stored on-board the satellite or sent to the ground 
+			  - have levels of severity
+				  - activity high
+				  - activity low
+					  - ex. `event Event1 severity activity low format "Event 1 occured"`
+				  - command
+				  - diagnostic
+				  - fatal
+				  - warning high
+					  - ex. `event Event3 severity warning high format "Event 3 occured"`
+				  - warning low
+					  - ex. `event Event2 severity warning low format "Event 2 occured"`
+			  - format - literal string for use in a display or event log
+			  - formal parameters - bound to arguments, when the component instance emits the event; argument values appear in the formatted text that describes the event
+				  - these are the exact same as for port definitions, except there's no reference parameter (aka no parameter can be pass-by-reference)
+			  - example
+				  - 
