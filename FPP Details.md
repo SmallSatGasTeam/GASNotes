@@ -1,4 +1,4 @@
-They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Defining-Types then this https://nasa.github.io/fpp/fpp-spec.html
+They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Defining-Component-Instances_Init-Specifiers_Execution-Phases then this https://nasa.github.io/fpp/fpp-spec.html
   - GDS limitations 
 	  - F Prime still uses the old XML format that they used to in order to support the GDS. 
 		  - Some FPP features aren't supported by the old XML format, so limitations will be noted when necessary 
@@ -395,5 +395,418 @@ They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Def
 			  - format - literal string for use in a display or event log
 			  - formal parameters - bound to arguments, when the component instance emits the event; argument values appear in the formatted text that describes the event
 				  - these are the exact same as for port definitions, except there's no reference parameter (aka no parameter can be pass-by-reference)
-			  - example
-				   `event Event2( case: Case, value: F64x3`
+			  - NOTE: the order in which the parameters are stated are the order in which they're gonna have to be used in the format string. example:
+				```FPP
+					enum Case {A, B, C};
+					array ThreeThings = [3] F64;
+					passive component EventParameters {
+					   @ Sample output: "Saw case A with value [ 1.2, 2.7, 3.2 ]"
+					   event Event2( case: Case, value: ThreeThings ) \
+					   severity warning low \
+					   format "Saw case {} with value {}"
+					}
+				```
+			  - Identifiers - like command opcodes, it's just a unique identifier for events
+				  - example usage:
+					  - `event Evvent1 severity activity low id 0x10 format "Event 1 occured"`
+			  - Throttling - just in case the code decides to send out a lot of warnings at once
+				  - example usage:
+					  - `event Event1 severity warning high format "Event 1 occured" throttle 10` - the component that this event is a part of will stop emitting this event after it has already emitted it 10 times
+		  - Telemetry channels - a channel to transfer data - one or more telemetry channels can be defined in a component 
+			  - Telemetry point - individual piece of data being sent as telemetry
+			  - A component is REQUIRED to have a telemetry port and a time get port if it has any amount of telemetry channels.
+				```FPP
+				passive component BasicTelemetry {
+					telemetry port tlmOut;
+					time get port timeGetOut;
+				
+					telemetry Channel1: U32;
+				}
+				```
+			  - Example telemetry channel:
+				  - `telemetry Channel1: U32` - you can also make it's type a previously defined constant
+			  - Telemetry channels also have identifiers
+				  - ex. `telemetry Channel1: U32 id 0x10;`
+			  - Update frequency
+				  - `always` - Emit a telemetry point (new piece of data) whenever the component implementation calls the auto generated function that emits the telemetry
+				  - `on change` - Emit a telemetry point (new piece of data) if:
+					  1. The implementation calls the auto generated function
+					  2. The auto generated function hasn't ever been called 
+					  3. The last time the auto generated function was called, it had a different value (telemetry point)
+				 - Choosing which frequency depends on how much load you want to put on the system at once, since `always` would be sending information more often than `on change` in most scenarios, but would be providing more up-to-date data points (telemetry points) than `on change` would
+				 - example usage - uses the keyword `update` followed by either `always` or `on change`:
+					 - `telemetry Channel2: F64 id 0x10 update on change`
+					 - `telemetry Channel3: F64 id 0x11 update always`
+			 - format - can also format the telemetry - uses the keyword `format` that comes after the `update` keyword if there is one
+				 - example: `telemetry Channel2: F64 id 0x10 update on change format "{.3f}"`
+			 - limits - bounds for the expected values carried by the channel
+				 - two kinds of limits
+					 - low - telemetry should stay above this limit
+					 - high - telemetry should stay below this limit
+				 - each kind of limit can have one of three levels of severity:
+					 - yellow: crossing the limit is a low concern
+					 - orange: crossing the limit is a medium concern
+					 - red: crossing the limit is a high concern
+				 - example - the numbers that come after the colors are the threshold limits for each of the severities:
+				  ```FPP
+					  telemetry Channel2: F64 id 0x10 \
+					  update on change \
+					  format "{.3f}" \
+					  low { red -3, orange -2, yellow -1} \
+					  high {red 3, orange 2, yellow 1 }
+				```
+				- NOTE: XML representation doesn't allow for limits for telemetry channels that are specifically of array or struct type
+		- Parameters - typed constant value that can be updated by a command - F Prime has a built-in database system to deal with parameters 
+			- example parameter:
+				- `param Param1: U32`
+			- there's also some required commands and parameter ports are required if you want to use any amount of parameters:
+				```FPP
+				command recv port cmdIn
+				command reg port cmdRegOut
+				command resp port cmdResponseOut
+
+				param get port prmGetOut
+				param set port prmSetOut
+				```
+				 - F prime will use these to automatically generate commands for setting the local parameter in the component, and saving the local parameter to a system-wide database
+			 - default values - uses the word `default` followed by the default values
+				 - example:
+					 - `param Param3: F64 default 2.0`
+			 - identifiers - unique id to represent the parameter
+				 - example
+					 - `param Param2: F64 default 2.0 id 0x10`
+			 - Set & Save opcodes
+				 - set - setting the opcode locally in the component
+				 - save - opcode to be saved to the system-wide database
+				 - if no other opcodes were created before these, the set will start at opcode 0, and the save will start at opcode 1
+				 - example 
+				```FPP
+					@ Implicitly stated that set opcode is 0x00 and save is 0x01
+					param Param1: U32 default 1;
+			
+					param Param2: F64 \
+						default 2.0 \
+						id 0x10 \
+						set opcode 0x10 \
+						save opcode 0x11
+					
+					@ Param3's set opcode is 0x12, and its save is 0x20
+					param Param3: F64 \
+						default [ 1.0, 2.0, 3.0 ] \
+						save opcode 0x20
+				```
+		- Data products - collection of related data that's stored on the satellite and then sent to the ground
+			- F Prime's built in components for dealing with Data Products include:
+				- Managing buffers that store data products in memory
+				- Writing data products to the file system
+				- Cataloging stored data products for downlink using priority as order
+			- Container - what a data product is represented as - Components can only use data products that they created
+				- one container holds one data product, each data product is stored in its own file
+				- container consists of:
+					- A header which provides info about the container (such as the size of the data)
+					- Binary data representing a list of serialized records
+						- Record = unit of data
+				- example record and container 
+					- `product record Record1: I32`
+					- `product container Container1`
+					- NOTE: records aren't tied to specific containers, however if a Component has a container or a record specifier, it also needs to have a record or a container specifier
+				- Example usage with id's
+					- `product record Record2: Data id 0x10`
+					- `product container Container1 id`
+				- Array & Struct records - records have to have a static size, so just make sure that the array or struct that you're using has a specified size 
+					- `product record DataArrayRecord: Data array` - the number of elements remains unspecified, but is provided when the record is serialized into a container
+		- Notes on constants and types
+			- Constants and type definitions can be written within components - typically this should be done for organizational purposes
+				- to access these definitions outside of the component, it's very similar to accessing something that's a part of a module 
+					- if *T* is a constant defined within a component *C* then to access *T* you would have to write `C.T`
+						- when converted to C++ it will look like `C::T` 
+			- Note about XML limitation:
+				- XML cannot convert the definition of constants and types to be members of C++ components 
+					- instead it makes everything a C++ class
+		- FPP include files
+			- if you don't wanna have a really long FPP file, and want to separate it out you can
+				- you just have to use the suffix `.fppi` instead of `.fpp` to make it an include file 
+					- for example you could define a bunch of commands in the `.fppi` file and then import it to your `.fpp` file
+			- to include a `.fppi` file: 
+				- `include "Example.fppi"` - this is called an Include Specifier 
+		- Matched ports
+			- basically if you have two ports, an input and an output, that have the same amount of ports, you can use the special keyword `match` to match the two together and gain special support from F Prime
+				- it will then automatically number a topology 
+			- Why use matched ports?
+				- they make it super easy to identify what's connected and provides more modularity 
+			- example:
+			```FPP
+			ouput port pingOut: [3] Svc.Ping
+			async input port pingIn: [3] Svc.Ping
+			match pingOut with pingIn
+			```
+	- Topology - Component Instances 
+		- kinds of component instance definitions: passive, queued, active
+		- parts of a component instance 
+			- name of the component definition it will be representing
+			- keywords `base id` followed by that component's base ID
+				- this is so that different components are on different id's entirely, and all the types and members within the components will have id's that build off of this `base id`
+		- passive component
+			- example:
+				```FPP
+				module Sensors {
+					passive component EngineTemp {
+						......
+					}
+				}
+				
+				module FSW {
+					instance engineTemp: Sensors.EngineTemp base id 0x100
+				}
+				```
+			 - XML note: the XML dictionary requires that each component instance have a distinct base ID
+			 - queued components 
+		 - queued components
+			 - just like instantiating a passive component but with one extra element
+				 - `queue size` - comes after `base id` 
+					 - specifies how big the queue will be 
+			 - example 
+				  ```FPP
+					 module Sensors {
+						 queued component EngineTemp {
+							 ....
+						 }
+					 }
+					
+					module FSW {
+						instance engineTemp: Sensors.EngineTemp base id 0x100 \
+							queue size 10
+					}
+				```
+		- Active components 
+			- just the same as instantiating a queued component, but with a few new things
+				- Queue size (required)
+				- Stack size (optional) - keywords `stack size` followed by the desired size in bytes
+				- Priority (optional) - keyword `priority` followed by a numeric value representing the priority
+			- example (also displays how you can create modules to organize stuff):
+				```FPP
+					module Utils {
+						active component DataCompressor {
+							.....
+						}
+					}
+					
+					module FSW {
+						module Default {
+							constant queueSize = 10;
+							constant stackSize = 10 * 1024;
+						}
+						
+						instance dataCompressor: Utils.DataCompressor base id 0x100 \
+							queue size Default.queueSize \
+							stack size Default.stackSize \
+							priority 30
+					}
+				```
+			 - CPU affinity (optional) - its meaning depends on the platform, but it's usually an instruction to the operating system to run the thread of the active component on a particular CPU, identified by a number
+				 - example usage:
+					 ```FPP
+					 instance dataCompressor: Util.DataCompressor base id 0x100 \
+						queue size Default.queueSize \
+						stack size Default.stackSize \
+						priority 30 \
+						cpu 0	 
+					```
+			 - Implementation type
+				 - The translator can automatically know the implementation type if its C++ class name matches with the name of the FPP component 
+					 - ex. the C++ class `A::B` matches with the FPP component name `A.B`
+				 - but if it for whatever reason doesn't you can specify the type like this:
+					```FPP
+					instance dataCompressor: Utils.DataCompressor base id 0x100 \
+						type "Utils::SpecialDataCompressor" \
+						queue size Default.queueSize \
+						cpu 0
+					```
+			 - Header file
+				 - the generator is able to automatically identify the header file if it conforms to these rules:
+					 - the name of the header file is `Name.hpp` where `Name` is also the name of the component in the FPP model
+					 - the header fil is in the same directory as the FPP source file that defines the component 
+				 - if the file doesn't follow these rules, you can specify the location of the header file using the keyword `at` followed by it's location relative to the location of the FPP file you're currently using
+				 - example:
+					```FPP
+					instance linuxTime: Svc.Time base id 0x4500 \
+						type "Svc::LinuxTime" \ 
+						at "../../Svc/LinuxTime/LinuxTime.hpp"
+					```
+			- Init specifiers - it would be more accurate to call these "setup or teardown specifiers", as they're ran when the FSW sets up or tears down everything 
+				- you can write one or more *init specifiers* to specify any special things you'd like to do upon the FSW's startup
+					- these are snippets of C++ code that you write, and that will be ran upon startup or when the FSW closes
+				- Execution phases 
+					- A topology is a unit of an FPP model that specifies the top-level structure of an F Prime application (component instances and their connections)
+					- When the C++ code for topology is generated, it'll create `NameTopologyAc.hpp` and `NameTopologyAc.cpp`
+					- some definitions:
+						- phase: the symbol denoting the execution phase
+							- generated file: the file for the topology that contains the definition: either the `.hpp` or `.cpp` file
+							- intended use: the intended use of the C++ code snippet 
+							- where placed: where fpp places the code snippet in the generated file
+							- default code: whether fpp generates default code if there's no init specifier. if there is then it replaces the default code
+					- the generated code is separated into many phases of execution:
+						- configConstants:
+							- generates: `TopologyAc.hpp`
+							- use: C++ constants for use in constructing and initializing an instance
+							- where: in the namespace `ConfigConstants::ComponentInstance`
+								- `ComponentInstance` is just an example name meant to represent the name of a component instance
+							- default: none
+						- configObjects:
+							- generated: `TopologyAc.cpp`
+							- use: Statically declared C++ objects for use in constructing and initializing the given instance 
+							- where: in the namespace `ConfigObjects::ComponentInstance`
+							- default: none
+						- instances:
+							- generated: `TopologyAc.cpp`
+							- use: constructor for a given instance that has an unconventional constructor format
+							- where: anonymous (file-private) namespace
+							- default code: standard constructor call for the given instance
+						- initComponents:
+							- generated: `TopologyAc.cpp`
+							- use: initialization code for a given instance that also has an unconventional constructor format
+							- where: in the file-private function `initComponents`
+							- default code: standard call to `init` for the current instance
+						- configComponents:
+							- generated: `TopologyAc.cpp`
+							- use: implementation specific configuration code for the given instance
+							- where: in the file-private function `configComponents`
+							- default code: none
+						- regCommands:
+							- generated: `TopologyAc.cpp`
+							- use: meant for registering the commands of an instance (if there are any) with the command dispatcher.
+								- Only required if an instance has a non-standard command registration format
+							- where: in the file-private function `regCommands`
+							- default code: standard call to `regCommands` if the instance has commands, otherwise there is no default code
+						- readParameters:
+							- generated: `TopologyAc.cpp`
+							- use: meant for reading parameters from a file
+								- normally used when an instance is the parameter database
+							- where: in the file-private function `readParameters`
+							- default code: none
+						- loadParameters:
+							- generated: `TopologyAc.cpp`
+							- use: for loading parameter values from the parameter database
+								- required if an instance has an unconventional parameter-loading format
+							- where: in the file-private function `loadParameters`
+							- default code: none
+						- startTasks: 
+							- generated: `TopologyAc.cpp`
+							- use: code for starting the task of an instance (if there is one)
+							- where: the file-private function `startTasks`
+							- default code: standard call to `startTasks` if a given instance is an active component; otherwise there's no default code
+						- stopTasks:
+							- generated: `TopologyAc.cpp`
+							- use: code for stopping the task of an instance (if there is one)
+							- where: in the file-private function `stopTasks`
+							- default code: standard call to `exit` if an instance is an active component; otherwise there's no default code
+						- freeThreads:
+							- generated: `TopologyAc.cpp`
+							- use: code for freeing the thread associated with a given instance
+							- where: in the file-private function `freeThreads`
+							- default code: standard call to `join` if a given instance is an active component; otherwise there's no default code
+						- tearDownComponents:
+							- generated: `TopologyAc.cpp`
+							- use: code for deallocating all the allocated memory (if there's any) associated with an instance
+							- where: in the file-private function `tearDownComponents`
+							- default: none
+					- Most often `configConstants`, `configObjects`, and `configComponents` are the parts that need code written for. 
+						 - often require specific input, that cannot be provided in any other way other than writing an init specifier 
+					 - `instances`, `initComponents`, `regCommands`, `readParameters`, and `loadParameters` should never need to be changed unless something didn't follow standard procedure 
+						 - the only thing that does need to be changed is that for the parameter database instance, one line of 'special code' is needed to read its parameters
+							 - according to ChatGPT-4 free version, this one line of 'special code' is literally just an invocation of the `readParameters` function to initialize it
+								 - ex: `paramDb.readParameters();` or `paramDb.init();`
+					 - `startTasks`, `stopTasks`, `freeThreads` are only required if the user-written implementation of a component instance manages its own F Prime task
+						 - if a standard F Prime active component is used, then the framework manages the task and this code is all autogenerated 
+					 - `tearDownComponents` is only required if a component instance needs to deallocate memory or release resources when the program exits
+				 - creating an init specifier
+					 - may write one or more init specifiers for a component instance definition 
+					 - they come at the end of the component definition, and are enclosed by curly braces
+					 - uses the keyword `phase` followed by the execution phase and the code snippet that is represented by three quotes
+					 - example:
+					```FPP
+						instance cmdSeq: Svc.CmdSequencer base id 0x0700 \
+							queue size Default.queueSize \
+							stack size Defulat.stakSize \
+							priority 100 \
+						{
+							phase Fpp.ToCpp.Phases.configConstants """
+							enum {
+								BUFFER_SIZE = 5*1024
+							}
+							"""
+							
+							phase Fpp.ToCpp.Phases.configComponents """
+							cmdSeq.allocateBuffer(
+								0,
+								Allocation::mallocator,
+								ConfigConstants::cmdSeq::BUFFER_SIZE
+							);
+							"""
+						}
+					```
+		 - defining topologies - aka connection graphs - defines what component instances are used in the application and how their port instances are connected
+			 - use the keyword `topology` to declare a new topology 
+				 - within topologies you define connections between component ports
+			 - basic example:
+			```FPP
+					port P
+					passive component C {
+						sync input port pIn: P
+						output port pOut: P
+					}  
+					
+					instance c1: C base id 0x100
+					instance c2: C base id 0x200
+					
+					topology Simple {
+						@ This is saying that these instances are part of the topology
+						instance c1
+						instance c2
+						
+						@ specifies a connection graph called C1
+						connections C1 {
+							c1.pOut -> c2.pIn
+						}
+					
+						@ specifies a connection graph called C2
+						connections C2 {
+							c2.pOut -> c1.pIn
+						}
+					}
+			```
+			- notice that you have to re-declare the instances to specify that they're part of the topology
+				- `connections` are the Graph Specifiers, and the `instance` declarations are the Instance Specifiers 
+					- if an instance is defined within a module, you can still use it, ex:
+						- `instance A.B`
+				- arrows (`->`) represent a connection from an endpoint to another endpoint 
+			- connection graphs
+				- two ways to specify connection graphs:
+					- direct graph specifiers
+						- specific graph specifiers that the user manually creates
+					- pattern graph specifiers 
+						- this is like having F Prime automatically connect all `timeGetOut` ports instead of writing it all out manually
+				- you can also define more than one connection per connection graph, thus these two sets of connections are the same: 
+					```FPP
+						connections C {
+							a.p -> b.p
+						}
+						connections C {
+							c.p -> d.p
+						}
+					
+						connections C {
+							a.p -> b.p
+							c.p -> d.p
+						}
+						
+						@ you can also seperate connections by commas
+						connections C {a.p -> b.p, c.p -> d.p}
+					```
+				- there are some very common topology connections, such as connecting all the `timeGetOut` ports to `sysTime.timeGetPort`
+					- since this is so often done, you can use the **pattern graph specifier**:
+						- `time connections instance sysTime`
+							- the keyword `time` is the **kind** of the pattern graph specifier
+							- `sysTime` is the **source instance** of the pattern specifier
+						- this will automatically construct a direct graph specifier called `Time` that will automatically connect all instances that have a `timeGetOut` port to the `sysTime.timeGetPort` port
+					- 
