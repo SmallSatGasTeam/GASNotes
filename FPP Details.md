@@ -1,5 +1,6 @@
 They recommend you read this https://nasa.github.io/fpp/fpp-users-guide.html#Analyzing-and-Translating-Models_Generating-C-Plus-Plus_Component-Implementation-and-Unit-Test-Code then this https://nasa.github.io/fpp/fpp-spec.html
 Also this is a good place to find info pertaining to FPP tools https://github.com/nasa/fpp/wiki/Tools
+Info about the F Prime topology visualizer can be found here: https://github.com/fprime-community/fprime-layout
   - GDS limitations 
 	  - F Prime still uses the old XML format that they used to in order to support the GDS. 
 		  - Some FPP features aren't supported by the old XML format, so limitations will be noted when necessary 

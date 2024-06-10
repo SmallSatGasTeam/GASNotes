@@ -4,6 +4,7 @@
 - Generates the build files
 - Must be used at the beginning of every project before running build
 - Does not need to be re-run unless dependent libraries are changed
+- `fprime-util generate -j $(nproc`) - uses all cores to generate, takes much less time to build
 ### build
 - Must be run at the beginning of the project in order to use intelli sense
 - Compiles the current folder
@@ -23,3 +24,4 @@
 ### impl
 - Run within a specific component's directory
 - Creates .hpp-template and .cpp-template files based on the fpp file
+- 
