@@ -24,6 +24,11 @@
 ### impl
 - Run within a specific component's directory
 - Creates .hpp-template and .cpp-template files based on the fpp file
+
+### fpp-check -u `filename`
+- Run inside Top folder of a deployment
+- Creates a file with a list of all unconnected ports
+
 ### deploy
  - run `fprime-gds` to deploy
  - go to `http://localhost:5000` to access the webpage
