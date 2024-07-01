@@ -31,3 +31,10 @@
 ### fpp-check -u `filename`
 - Run inside Top folder of a deployment
 - Creates a file with a list of all unconnected ports
+
+### deploy
+ - run `fprime-gds` to deploy
+ - go to `http://localhost:5000` to access the webpage
+### generate 
+ - run `fprime-util impl` in the component's local directory
+ 
