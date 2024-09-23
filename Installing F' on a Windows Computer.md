@@ -34,6 +34,8 @@
 - Use ctrl + x to save and exit
 - Close the terminal and reopen it
 
+## Checking if it worked
+
 - Run this command to ensure you completed it correctly
 	- `fprime-bootstrap --help`
 	- If this shows a usage you've successfully installed F' on your computer!
