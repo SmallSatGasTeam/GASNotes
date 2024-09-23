@@ -22,6 +22,17 @@
 
 - Run the following command in the terminal
 	- `pip install fprime-bootstrap`
+
+## Adding to the path
+
+- If you receive the warning, "the script fprime-bootstrap is installed in `folder` which is not on PATH..." you need to add `folder` to your path
+- Run the command `nano ~/.bashrc` in your terminal
+	- This should open a text editor on the command line
+	- Use the arrow keys to move down to the very bottom and then add:
+	- `export PATH=$PATH:<folder>` 
+		- Replace `<folder>` with the file path fprime bootstrap gave you earlier
+- Use ctrl + x to save and exit
+
 - Run this command to ensure you completed it correctly
 	- `fprime-bootstrap --help`
 	- If this shows a usage you've successfully installed F' on your computer!
