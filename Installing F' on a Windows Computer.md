@@ -32,6 +32,7 @@
 	- `export PATH=$PATH:<folder>` 
 		- Replace `<folder>` with the file path fprime bootstrap gave you earlier
 - Use ctrl + x to save and exit
+- Close the terminal and reopen it
 
 - Run this command to ensure you completed it correctly
 	- `fprime-bootstrap --help`
