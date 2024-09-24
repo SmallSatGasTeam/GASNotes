@@ -9,6 +9,13 @@
 - Search ubuntu
 - Install the Ubuntu app that doesn't have a bunch of fancy letters next to it
 - Open the ubuntu app, create a username and password (REMEMBER THESE)
+
+# Install VSCode
+ - Download and run the installer https://code.visualstudio.com/download
+ - When you have VSCode installed, install the following extensions:
+	 - C++ extension
+	 - FPP extension
+	 - CMake extension
 ## Update applications
 
 - In the Ubuntu terminal enter the following commands
