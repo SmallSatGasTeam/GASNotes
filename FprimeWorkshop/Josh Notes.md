@@ -1,0 +1,135 @@
+## Day 1
+- Hardware layering
+	- Pripheral
+	- I/O device
+	- Processor
+- Git is a version control software
+- Golden Binary
+	- If you choose to upload binary so that you can update the version, create a fall back version of the code so if it continues to fail on the new update, it can rerun on the original or the "golden binary".
+	- This is similar to the code bases that GASPACS used
+- Updating software from the ground
+	- Upload a file with a specific name, create a bash scrip and then use chrono to run it on startup that will copy it in and start running on the new one.
+- FSW System Engineering
+	- Understanding requirements
+		- Understand the interfaces
+		- Performance
+		- Resources
+		- Activities
+		- Testability
+			- To make it easier to use we make it reusable in the same way that hardware is
+			- Modularity
+			- Reusability
+			- Testability
+	- Application, manager, driver
+		- Don't call up the stack
+		- The Manager shouldn't tell the Application layer what to do
+			- Callbacks should be through asynchronous invocation
+			- Think about how different items are going to respond to events which will act similar to interrupts. Then how will that call back to the application layer
+- Software architecture
+	- Describes the skeleton and high level infrastructure
+	- F' is a component based Architecture
+	- Modularity
+	- Module coupling
+		- How much components are related to each other
+		- High coupling(bad)
+			- Control coupling
+				- "what-to-do" flag
+			- data coupling
+				- Components share a data space
+			- content coupling
+				- Components share common code or data space
+	- Module cohesion
+	- Strive for Low coupling and high cohesion **Review these slides**
+	- Portability
+	- Reusability
+	- Other principles
+		- No dynamic memory allocation after initalization
+	- No multiple class inheritance
+	- Limit class hierarchy
+	- Integrity checks
+		- Asserts
+	- Performance
+	- Keep it simple
+		- If your code is complicated and ugly, it's probably wrong.
+	- Views
+		- Task view
+		- Component view
+	- Componenets encapsulate
+		- A task
+		- A state machine
+		- An input Queue
+		- Input and output ports
+- Software design
+	- Describes the implementation of the domain within the software architecture
+	- Talk about how your specific mission and mission requirements are going to be met by your domain infrastructure
+- Software Requirements
+	- Levels
+		- Mission
+		- Project
+		- System
+		- Subsystem
+		- Flight software
+		- Component Requirements
+	- Requirements are traced up and down
+		- Higher level requirements are satisfied by lower level requirements
+		- Lower level requirements are traced back to upper level requirements
+	- FSW requirements
+		- Shall statements
+		- Concise
+			- Context information can be provided as an auxiliary
+			- Specification is another way to talk about this
+		- Unambiguous
+		- Testable
+	- First question is What are we building?, NOT how do we implement it?
+	- Structured Analysis
+		- What are we building
+		- Not meant to show design
+		- Does not capture timing, sequence, and synchronization of processes
+		- Breaks the system into manageable chunks
+		- Shows the logic of data flow
+	- Component state
+		- Discrete states
+		- Avoid fuzzy notion
+			- Discrete state status
+			- Signals cause state transitions
+			- Actions that get invoke on a Transition
+			- State entry and exit behavior
+		- F' is going to allow us to have a state machine in there soon
+- F' Introduction
+	- Guarded ports
+		- Lock a mutex to make sure that it doesn't get over used.
+	- Serialization is Big Endian
+	- Parameters store non-volatile states that are only set from the ground
+- FPP
+	- It exists, its cool
+- Flight Software Design
+	- Dynamically allocated resources draw from a preallocated pool
+		- This allows us to avoid memory errors because the memory space we're using is better defined
+	- However much space you give your buffer manager, that's the maximum size you can take
+	- Avoid using new or malloc unless it's at the very beginning of the program.
+	- F' doesn't like recursion because it causes an unbounded allocation of the stack
+	- Must plan concurrency model
+	- Queues help avoid contention
+	- Messaging and scheduling must be thought through
+	- Care must be taken with work requiring specific timing
+
+
+#### Questions to consider
+- **What actions do we have that are time sensitive?**
+- What are the different kinds of requirements?
+- Do we need to find another way to implement the Beacon Handler?
+- How does raspberry pi OS prioritize systems?
+- What do we do if we find a fatal fault?
+
+#### Things to change
+- Add a secondary requirement to update the FSW
+- Outside of what must be done with low power mode we should avoid using flags or somethings similar to change flow within components.
+- The call can be identical, but then check the state to decide which function to call. Each state can have a separate function as can each transition.
+- Ports can handle data flow and calls but then private member functions  that aren't connected to any kind of port can be used for state functions and state transitions.
+- Flight logic would be so much easier if written in states
+	- Startup up
+	- Normal Operations
+	- Low power operations
+- Inside our main we need to create a deployment that has a simulated manager level and or one that has a simulated driver level
+- Build a wrapper for the Camera
+- Always bind the size of our data
