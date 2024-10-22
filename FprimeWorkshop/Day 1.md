@@ -1,0 +1,139 @@
+ - Hardware layering
+	 - Peripheral - I/O Device (gpio/i2c other things) - Processor
+ - The golden binary is the binary that was put originally on the spacecraft, so that the computer can fall back on something if the new binary fails
+- Bit flips
+	- done on the hardware layer, detect flips in ecc memory 
+	- in software have things that read and write it back 
+- Flight Software System Engineering
+	- understanding interfaces to the system
+		- how does it interact with the environment?
+		- how does it interact with payload, platforms, execution environments? (RTOS, non-rtos, bare metal)
+	- understand requirements
+		- testability*
+			- we want to confirm the high reliability of our spacecraft
+	- Software
+		- modularity
+		- reusability 
+		- testability
+	- imu example
+		- application - drone guidance
+		- manager - imu manager - get imu rates
+		- driver - i2c driver - i2c commands
+			- calls only go down the stack, never up the stack
+				- never go from driver to manager, only ever manager to driver
+	- software design stack
+		- driver - dedicated to particular hardware device
+		- manager - manages a particular peripheral -  shouldn't know the use of the peripheral
+		- application - implements mission specific use of the peripheral (and other peripherals)
+		- we really want:
+			- reusability, replacement, and testing
+	- testing
+		- there's unit testing, then system testing (testing all the software in tandem), then in hardware in the loop testing
+	- interfaces
+		- defined functions/components that will be used, not necessarily defining how they're gonna be used
+- software architecture
+	- software architecture is different from software design
+		- software architecture - skeleton/high level infrastructure of the software
+- software design - describes the implementation of the domain within the software architecture
+- F' is an architecture
+	- component based
+		- a component is a unit of computation with a well-defined interface
+		- component has no symbolic dependencies on other components
+			- compile, load, and execute independently of other components
+	- modularity 
+		- a module is a unit of work assigned to a developer
+		- has well defined set of requirements
+		- has well defined interface
+		- unit tested
+	- module coupling
+		- the extent that modules are related to each other
+		- high coupling (one component knows what the other does) - this is bad
+	- module cohesion - the extent that data and functions inside a module/component belong to each other
+		- high cohesion - all the functions and data for a device driver pertain to the operation of the device - this is good
+	- want low coupling and high cohesion 
+	- portability
+		- the ability to use the software on your pc and in your embedded system - fprime uses an Operating System Adaptation Layer to do this
+	- Complicated and ugly code = probably wrong
+	- a component encapsulates
+		- a task
+		- state machine
+		- input queue 
+		- input and output ports
+	- software requirements are typically layered 
+		- mission. project, system, subsystem, flight software, and component requirements
+		- requirements are traced up and down
+			- high level requirements are satisfied by lower level requirements
+			- lower level requirements are traced back to upper level requirements
+- Flight software requirements
+	- FSW requirements should be:
+		- concise
+		- unambiguous
+		- testable 
+		- a shall statement
+	- helps the developer to understand what to implement
+	- Ex: `The FSW shall produce spacecraft health information via telementry`
+		- context information can also be provided as an auxiliary...ex: `Spacecraft health infromation consists of the following...`
+	- Before design and code:
+		- ask `What are we building?` NOT `How do we implement it?`
+- Structured analysis
+	- process that generates a data flow diagram
+		- answers the question: "What are we building?"
+		- contains processes and boundaries
+	- data flow diagram model
+		- process (data transformation)
+		- data flows
+		- data stores
+		- levels
+			- focus on system interfaces
+			- overviews of system processing
+			- detailed views
+	- data flow diagram specifies
+		- flight software interfaces
+		- flow of data to processes
+		- the processing and transformation of the data
+		- data stores (State)
+		- used to derive flight software requirements
+		- natural transition to implementation
+	- components specify
+		- specific implementation details
+	- avoid fuzzy notion of state with a collection of Boolean flags and scattered state logic 
+		- define states of the component, and what can trigger a state change 
+- State machine 
+	- you can create state machines via fpp
+	- you can define state machine logic through fpp in the near future
+	- all components will do is return to the state machine 
+	- you can use STARS - JPLOpenSource - to create state machienes 
+		- you can also write it in Plant UML
+- FPrime introduction
+	- you can build a wrapper for libraries using a passive components
+	- serialization uses big endian
+	- Serialize ports - like the void pointer of ports
+	- event names and outputs, are compiled on the ground, only the opcode is sent from the satellite to restrict how much data is going over the gds 
+	- might need to find a different gds interface, since the fprime gds is meant for just testing
+- use xcode and clang for mac
+- Fw = framework
+- Flight software design
+	- don't use recursion in F', you'll run out of stack space
+	- Must plan concurrency model
+	- shared resources must be handled appropriately 
+	- messaging and scheduling must be thought through
+	- care must be taken with work requiring specific timing 
+	- be careful prioritizing tasks, it depends on your operating systems
+	- log off-nominal conditions 
+		- think about off-nominal behaviors, and account for them
+			- go into safe state before resetting 
+	- serialization 
+		- make sure you're keeping data separate in ram so that you're not mixing data
+			- can't always copy data directly info buffers
+	- Design patterns
+		- Adapter pattern
+			- create an adapter component between the application and the external library to wrap the library as if it's an fprime component
+		- rate groups 
+			- sometimes you may be off the timing you need, so you can take a really fast rate group like 1000hz, then slice out the timing you need
+		- hub pattern
+			- create a hub from either side that takes serial buffers
+				- from the first hub, aggregate data from the active logger and command dispatcher and telemetry channels, then send through the hub component through serial buffers
+			- then send out the values from those buffers to the other hub on the other system, which will send out the data to its components 
+		- manager worker pattern
+			- manager sends work to worker worker responds back afterwards
+			- only manager communicates with worker
