@@ -113,6 +113,153 @@
 	- Messaging and scheduling must be thought through
 	- Care must be taken with work requiring specific timing
 
+## Day 2
+- Safe coding standards
+	- Unbounded vs bounded loops
+		- Bounded
+			- Will always have an end
+			- Think of your standard loop
+		- Unbounded
+			- Can run forever
+			- Like using a break statement or return statement to escape an infinite loop
+			- recursion
+	- Assertions
+		- Asserts that something that should always be true is still true
+		- If it's not true, then we stop in unit testing or restart in flight
+		- Only use if it should never happen
+			- This means that you should brace against things that could happen such as bad user input using other forms of error handling
+	- Avoid Dangerous Code
+		- C has some tricky operator precedence
+			- Just use parenthesis
+		- Complex Macros
+		- Out-of-bounds array access
+		- Hanging pointers
+			- Think of scope and the stack
+		- Avoid dynamic memory allocation
+			- Avoids heap fragmentation, dangling pointers, and memory leaks
+	- Static analysis
+		- There are static analysis tools in such as some of the GitHub tools
+	- Follow a coding standard
+		- JPL has one, so does Google
+		- The Power of 10
+			- Very simple
+	- Coding Style
+		- Encapsulate Operations on Data
+			- This is why we use OOP
+			- Avoid inline operations on data structures
+				- Keep your data structure as a separate class and then create public member functions that allow you to do the desired operations on it
+				- Represent your data structures using a class
+		- Use Helper Classes
+			- Can be an inner class
+				- This looks nice but then you have to pass a reference to the outer class in the inner class
+				- However you still get access to private members
+			- Can be an outer class
+				- Name it as something Helper
+		- Factor functions into layers
+			- High-level structure
+			- Detailed work
+		- Keep functions short
+			- Think of each commented code block as a function
+			- Keep functions less than 60 lines
+		- Avoid multiple return statements
+			- Can make it hard to follow logic
+			- Can lead to resource leaks
+			- Pattern
+				- Claim resources
+				- Do work
+				- Release resources
+				- Return
+			- Propagate state to a single return point
+				- Use a state machine to check for errors
+		- Prefer passing of state through arguments over member variables
+			- Name your functions to show that you're updating the state
+			- Only use member variables for data that should persist within a class, otherwise, you can just pass an argument
+		- Avoid Boolean Flag Arguments
+			- Instead of arguments use an enum
+		- Avoid Boolean Values for Return Status
+			- Return an enum of Success or Failure
+			- Although closely related, there is some ambiguity between true and false, and success and fail
+		- Use Fixed-Width Types
+		- Avoid using %d, %u, and %x in printf statements
+			- Try to use a fixed width equivalent
+			- If you assume %d is going to print an I32 it usually will but occasionally may not
+		- Initialize all Variables
+			- Don't leave memory uninitialized unless required
+			- Avoids nondeterministic behavior
+		- Use pointers and references wisely
+			- Prefer references to pointers
+			- References cannot be NULL
+			- Use references for concision
+				``` c++
+				//Dont Write
+				this->a.b.c[i]
+				
+				//Instead
+				C& c = this->a.b.c[i]
+				c[i] = 7;
+				q = c[i];
+				```
+		- Use flight-Like Memory Allocation
+			- Avoid
+				- using malloc or new after initialization
+				- Allocating large objects on the stack
+				- Allocating variable-size arrays on the stack
+			- Prefer simple memory allocation
+		- Wrap accesses to buffer pointers and arrays
+			- Avoid bare array access (A[i])
+				- This is unsafe because it's not bound checked
+				- Use classes with a private member array and then put checks in the accessor function
+			- Avoid accessing bare buffer pointers
+				- Create buffer objects that store both a pointer and a size
+				- This allows you to make sure that you don't overstep in your memory space
+		- Use const as much as possible
+		- Avoid using C Lib String Functions
+			- A lot of it is not bounds checked
+- Data Structures
+	- Use arrays to hold data elements rather than lists
+	- Don't use the STL because it has hidden new and delete operations
+	- There is the Embedded Library ([ETL](https://www.etlcpp.com))
+	- Arrays
+		- Use them when the index set is numeric and dense
+	- Stack
+		- Use if you need a LIFO
+	- Queue
+		- Use if you need a FIFO
+	- Set/Map
+	- Linked List
+	- Has Set/Map
+		- One array that holds your hash buckets
+		- Another array that holds you information
+
+## Day 3
+- Unit testing
+	- Why important?
+		- Integration easier
+		- Allows unit-level regression tests
+			- Regression tests are tests you can run that garauntee that you haven't broken anything and that the system will still run
+	- Goals
+		- Cover all component-level requirements
+		- High code coverage
+			- As close to 100%
+		- Achieve a reasonable amount of state and path coverage
+	- Mapping tests to requirements
+		- Requirements should drive the tests
+		- You can create a map of which requirements correspond to which unit-tests
+	- Writing tests
+		- Start by writing small functions that test individual behaviors
+		- Then write tests composing of these functions
+			- This allows you to not have to keep making more and more functions and avoid a lot of refactoring
+			- Makes clean and pretty tests
+		- Look up rule-based testing
+		- Treat tests as a programming problem
+		- Apply (almost) the same level of rigor as for flight code
+		- Don't throw down messy code to get coverage
+	- Picking inputs
+		- Use significant values/boundary values
+		- Use random values
+			- STest framework has a random value picker
+		- Can use arbitrary values but it's not robust
+
 
 #### Questions to consider
 - **What actions do we have that are time sensitive?**
@@ -120,6 +267,7 @@
 - Do we need to find another way to implement the Beacon Handler?
 - How does raspberry pi OS prioritize systems?
 - What do we do if we find a fatal fault?
+- You can use memset(0) in c?
 
 #### Things to change
 - Add a secondary requirement to update the FSW
@@ -133,3 +281,6 @@
 - Inside our main we need to create a deployment that has a simulated manager level and or one that has a simulated driver level
 - Build a wrapper for the Camera
 - Always bind the size of our data
+- Use assertions to combat against bit flips
+- Implement tests when receiving to ensure that your packet is exactly the right size
+- Clean up the flat sat
