@@ -14,8 +14,18 @@ This should be the only change in the code needed to connect to the pi.
 Note, this section is written assuming the user is running on Linux or WSL. This section only needs to be completed the first time you're cross compiling for the pi.
 
 The easiest way to install the cross-compiler is to run the FirstTimeCompile32.sh bash script. If that has been deleted or lost to time then step by step instructions are detailed below.
+
 #### Create a directory for the cross compiler
-Run the command `sudo mkdir -p /opt/toolchains` to create a folder in which to install the cross-compiler. Next, run `sudo chown $USER /opt/toolchains` to set your profile as the owner. 
+Run the command `sudo mkdir -p /opt/toolchains` to create a folder in which to install the cross-compiler. Next, run `sudo chown $USER /opt/toolchains` to set your profile as the owner.
+
+### Set the tool path
+Run the following two commands to set the ARM_TOOLS_PATH, if you ever have a problem for compiling for arm-hf-linux you may need to run these commands again.
+```bash
+export ARM_TOOLS_PATH=/opt/toolchains
+# this is to check if environment vairable is correctly set
+# it should return `/opt/toolchains` if it's all good
+echo $ARM_TOOLS_PATH
+```
 
 #### Download and install
 After setting permissions, use `curl -Ls https://developer.arm.com/-/media/Files/downloads/gnu-a/10.2-2020.11/binrel/gcc-arm-10.2-2020.11-x86_64-arm-none-linux-gnueabihf.tar.xz | tar -JC /opt/toolchains --strip-components=1 -x` to download and install the cross compiler.
