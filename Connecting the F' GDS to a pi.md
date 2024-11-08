@@ -18,7 +18,7 @@ The easiest way to install the cross-compiler is to run the FirstTimeCompile32.s
 #### Create a directory for the cross compiler
 Run the command `sudo mkdir -p /opt/toolchains` to create a folder in which to install the cross-compiler. Next, run `sudo chown $USER /opt/toolchains` to set your profile as the owner.
 
-### Set the tool path
+#### Set the tool path
 Run the following two commands to set the ARM_TOOLS_PATH, if you ever have a problem for compiling for arm-hf-linux you may need to run these commands again.
 ```bash
 export ARM_TOOLS_PATH=/opt/toolchains
