@@ -1,6 +1,6 @@
 ## Day 1
 - Hardware layering
-	- Pripheral
+	- Peripheral
 	- I/O device
 	- Processor
 - Git is a version control software
