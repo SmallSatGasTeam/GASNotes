@@ -24,3 +24,16 @@
 	- `git push origin`
 
 ### Branch commands
+- `git branch`
+	- Lists what branch you are currently in
+- `git branch -m <new branch name>`
+	- Creates a new branch
+	- This branch must be pushed after creation to be seen on GitHub and become available to others
+- `git checkout <branch>`
+	- Allows you to switch to a different branch
+
+### Checking out Old Commits
+- `git log`
+	- Prints a log of all previous commits and their SHA (commit number)
+- `git checkout <SHA>`
+	- Detaches the HEAD and switches it to the commit specified by the SHA
