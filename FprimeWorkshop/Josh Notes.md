@@ -259,7 +259,63 @@
 		- Use random values
 			- STest framework has a random value picker
 		- Can use arbitrary values but it's not robust
+	- Modeling external behavior
+		- Model external behavior
+		- Write a test harness or mock system
+	- Testing against the interface
+		- Use the interface, send commands, send data on ports, etc.
+			- Avoid directly updating the state (member variables) of the component
+	- Testing components that use libraries
+		- Link against a mock or stub library instead of the actually library itself
+	- Checking code coverage
+		- Use gcov
+- Unit testing in F'
+	- The interface is a "mirror image" of the component under test
+		- Input ports are called to ports
+		- Output ports are called from ports
+	- Sending commands
+```c++
+this->sendCOMMAND_NAME(params);
+this->component.doDispatch();
+ASSERT_CMD_RESPONSE_SIZE(1);
+ASSERT_CMD_RESPONSE(<index history>, <command opcode>, <command sequence number>,<command response>);
+```
+	- Checking User-Defined Output ports
+```c++
+ASSERt_FROM_PORT_HISTORY_SIZE(1);
+etc.
+```
 
+- Systems testing
+	- Testing software within the full running system
+	- One thing that's useful is simulated hardware
+	- Manual system testing
+		- Have an engineer run the test all by hand with no automation
+	- Automated systems testing
+	- Continuous integration testing
+		- Requires no human interaction
+	- In F'
+		- You can use the GDS
+		- Use the sequence dashboard
+	- F' integration test framework
+		- Allows users to write automated tests in python
+		- Tests dispatch commands and asserts on events and telemetry
+- Process
+	- Process overview
+		- Requirements
+		- Design
+		- Implementation
+		- Verification
+		- Maintenance
+	- Must avoid scope creep
+	- Communicate over planned interfaces
+	- While designing look at utilization and performance of:
+		- memory
+		- CPU
+		- I/O
+	- Document unit and integration tests
+	- Create closeout checklists
+	- Use can use completion points to model progress
 
 #### Questions to consider
 - **What actions do we have that are time sensitive?**
@@ -268,6 +324,7 @@
 - How does raspberry pi OS prioritize systems?
 - What do we do if we find a fatal fault?
 - You can use memset(0) in c?
+- How can we better report to Ethan and the rest of the team? How can I better report to my team? How can my team members better report to me?
 
 #### Things to change
 - Add a secondary requirement to update the FSW
@@ -284,3 +341,4 @@
 - Use assertions to combat against bit flips
 - Implement tests when receiving to ensure that your packet is exactly the right size
 - Clean up the flat sat
+- Schedule reboots

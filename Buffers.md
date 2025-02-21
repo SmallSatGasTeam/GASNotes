@@ -1,7 +1,7 @@
  - To send data via a buffer 
 	 - make sure your component has two output ports `allocate` and `deallocate` that are connected to `bufferManager.bufferGetCallee` and `bufferManager.bufferSendIn`
 		 - ex (in your components' fpp file):
-			 - `output port allocate: Fw.BufferGet` and `output port deallocate Fw.BufferGet`
+			 - `output port allocate: Fw.BufferGet` and `output port deallocate: Fw.BufferGet`
 			 - note: you don't need to run `fprime-util impl` after adding these since these are just output ports
 		 - ex (in your projects' topology file):
 			 - `myComponent.allocate -> bufferManager.bufferGetCallee` and `myComponent.deallocate -> bufferManager.bufferSendIn`
