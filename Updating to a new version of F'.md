@@ -3,6 +3,9 @@
 ## Updating F'
 - Navigate to the fprime directory
 - Find the commit for the most recent version of F' and copy the SHA
+	- Open: [nasa-github](https://github.com/nasa/fprime)
+	- Navigate to the right side under releases and open the latest release
+   	- Find the commit SHA
 - In the fprime directory run `git checkout <commit SHA>`
 - git pull
 
