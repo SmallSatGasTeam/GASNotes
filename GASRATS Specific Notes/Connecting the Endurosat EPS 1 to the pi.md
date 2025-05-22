@@ -3,7 +3,19 @@
 *  This file refers to the Endurosat EPS 1 & EPS 1 Plus data sheet.
 *  It will explain how to connect on hardware first, then go into the software involving F-Prime and the I2C communication protocol.
 ## Hardware
-//TODO
+### Connecting Hardware
+*   To connect the EPS to the pi it is as simple as finding the correct I2C pins and connecting them.
+*   In our case:
+     * The pins on the EPS were Header 1: GPIO41 for SDA, and GPIO43 for SCL.
+     * The pins on the pi were GPIO3 for SDA, and GPIO5 for SCL.
+* Then make sure both the pi and EPS are on.
+* To turn on the EPS, the RBF tag must be removed, and at least *one* deployment switch should be open.
+### Verifying Connection
+*   To verify that you are connected to the pi, ssh into the pi and run the following commands:
+     *   `ls -l /dev/i2c*` : Should output `/dev/i2c-1`
+     *   `i2cdetect -y 1` : Will output a table of addresses, the EPS device address should be listed and should match the address described in the datasheet.
+          *   If this does not result in the EPS address being listed, the connection on the pi or EPS must be bad.
+*   You can now test your software, refer to "Running Fprime Deployment on Pi1.md" and "Connecting the F' GDS to a pi.md"
 ## Software
 ### F-Prime
 *  Make sure that in your component you have established connection with the I2C Linux Driver that F-Prime provides.
